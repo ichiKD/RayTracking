@@ -14,4 +14,9 @@ RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-re
 
 WORKDIR /cg1
 
-CMD /bin/zsh
+COPY ./scripts/run_all_tests.sh /cg1/scripts/run_all_tests.sh
+RUN chmod +x /cg1/scripts/run_all_tests.sh
+ENTRYPOINT ["/cg1/scripts/run_all_tests.sh"]
+
+
+CMD /bin/bash
