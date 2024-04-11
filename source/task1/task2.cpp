@@ -37,6 +37,15 @@ float dot(math::vector<float, 4> a, math::vector<float, 4> b){
   return a.x* b.x + a.y* b.y +  a.z* b.z;
 }
 
+float determinant(math::vector<float, 3> a, math::vector<float, 3> b, math::vector<float, 3> c){
+    float ans = a.x *(b.y*c.z -b.z*c.y);
+    ans -= a.y *(b.x*c.z -b.z*c.x);
+    ans += a.z *(b.x*c.y -b.y*c.x);
+    return ans;
+}
+
+
+
 
 
 
@@ -119,8 +128,26 @@ const Plane *findClosestHitPlanes(const float3 &p, const float3 &d, const Plane 
   // If an intersection is found, set t to the ray parameter and
   // return a pointer to the hit plane.
   // If no intersection is found, return nullptr.
-
-  return nullptr;
+    const Plane * ans = nullptr;
+    float ans_t;
+    for (int i = 0; i < num_planes; ++i) {
+        auto plane = planes[i].p;
+        float t;
+        bool check = intersectRayPlane(p, d, plane, t);
+        if(check){
+            if(ans == nullptr){
+                ans = &planes[i];
+                ans_t = t;
+            }
+            else{
+                if(t < ans_t){
+                    ans = &planes[i];
+                    ans_t = t;
+                }
+            }
+        }
+    }
+    return ans;
 }
 
 bool intersectRayTriangle(const float3 &p, const float3 &d, const float3 &p1,
@@ -135,7 +162,20 @@ bool intersectRayTriangle(const float3 &p, const float3 &d, const float3 &p1,
   // Otherwise, compute and set the parameters lambda_1 and lambda_2
   // to the barycentric coordinates corresponding to the
   // closest point of intersection
-  return false;
+
+    float A = determinant(p1- p2, p1-p3, d);
+    if(isZero(A)){
+        // ray is parallel to triangle
+        return false;
+    }
+    lambda_1 = determinant(p1- p, p1-p3, d) / A;
+    lambda_2 = determinant(p1- p2, p1-p, d) / A;
+    if(lambda_1 >= 0 && lambda_2 >= 0 && (lambda_1 + lambda_2) < 1){
+        return true;
+    }
+    else{
+        return false;
+    }
 }
 const Triangle *findClosestHitTriangles(const float3 &p, const float3 &d,
                                const Triangle *triangles,
