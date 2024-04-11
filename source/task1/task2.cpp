@@ -44,7 +44,13 @@ float determinant(math::vector<float, 3> a, math::vector<float, 3> b, math::vect
     return ans;
 }
 
-
+math::vector<float, 3> cross(math::vector<float, 3> a, math::vector<float, 3> b){
+    math::vector<float, 3> ans;
+    ans.x = a.y*b.z - a.z*b.y;
+    ans.y = a.z*b.x - a.x*b.z;
+    ans.z = a.x*b.y - a.y*b.x;
+    return ans;
+}
 
 
 
@@ -147,6 +153,7 @@ const Plane *findClosestHitPlanes(const float3 &p, const float3 &d, const Plane 
             }
         }
     }
+    t = ans_t;
     return ans;
 }
 
@@ -170,6 +177,10 @@ bool intersectRayTriangle(const float3 &p, const float3 &d, const float3 &p1,
     }
     lambda_1 = determinant(p1- p, p1-p3, d) / A;
     lambda_2 = determinant(p1- p2, p1-p, d) / A;
+    float3 n = cross(p2-p1, p3-p1);
+    float w = dot(n, p1);
+    t = w - dot(n, p);
+    t = t / dot(n, d);
     if(lambda_1 >= 0 && lambda_2 >= 0 && (lambda_1 + lambda_2) < 1){
         return true;
     }
@@ -194,7 +205,45 @@ const Triangle *findClosestHitTriangles(const float3 &p, const float3 &d,
   // closest point of intersection, and return a pointer to the hit triangle.
   // If no intersection is found, return nullptr.
 
-  return nullptr;
+
+    const Triangle * ans = nullptr;
+    float ans_t=std::numeric_limits<float>::infinity(), ans_lambda_1, ans_lambda_2;
+    for (int i = 0; i < num_triangles; ++i) {
+        auto p1 = vertices[triangles[i][0]];
+        auto p2 = vertices[triangles[i][1]];
+        auto p3 = vertices[triangles[i][2]];
+        float t, lambda_1, lambda_2;
+        bool check = intersectRayTriangle(p, d, p1, p2, p3, t, lambda_1, lambda_2);
+        if(check){
+            if(ans == nullptr){
+                ans = &triangles[i];
+                ans_t = t;
+                ans_lambda_1 = lambda_1;
+                ans_lambda_2 = lambda_2;
+            }
+            else{
+                if(t < ans_t){
+                    ans = &triangles[i];
+                    ans_t = t;
+                    ans_lambda_1 = lambda_1;
+                    ans_lambda_2 = lambda_2;
+                }
+            }
+        }
+        else{
+            if(ans == nullptr){
+                if(t < ans_t){
+                    ans_t = t;
+                    ans_lambda_1 = lambda_1;
+                    ans_lambda_2 = lambda_2;
+                }
+            }
+        }
+    }
+    t= ans_t;
+    lambda_1= ans_lambda_1;
+    lambda_2= ans_lambda_2;
+    return ans;
 }
 
 bool intersectsRayTriangle(const float3 &p, const float3 &d,
