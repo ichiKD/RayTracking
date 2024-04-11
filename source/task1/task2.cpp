@@ -8,7 +8,9 @@
 
 constexpr float epsilon = 0.001f;
 
-using namespace std;
+
+
+
 
 bool isZero(float a){
     if(a<=epsilon && a>=-epsilon){
@@ -18,9 +20,6 @@ bool isZero(float a){
         return false;
     }
 }
-
-
-
 
 math::vector<float, 3> normalized(math::vector<float, 3> a){
   float magnitude = a.x* a.x + a.y* a.y +  a.z* a.z;
@@ -294,8 +293,26 @@ float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
   // To implement shadows, use scene.intersectsRay(p, d, t_min, t_max) to test
   // whether a ray given by start point p and direction d intersects any
   // object on the section between t_min and t_max.
-
-  return hit.k_d;
+    float3 color = {0, 0, 0};
+    for(int i =0; i<num_lights; i++){
+        Pointlight light = lights[i];
+        float3 n = normalized(light.position - hit.position);
+        float3 d_n = normalized(-d);
+        float3 h_n = normalized(hit.normal);
+        float cos_angle = std::max(dot(h_n, n), 0.0f);
+        float3 diffuse = hit.k_d * cos_angle;
+        float t_max = std::sqrt(dot(light.position - hit.position, light.position - hit.position));
+        if (scene.intersectsRay(hit.position, n, epsilon, t_max)) {
+            continue;
+        }
+        else{
+            float3 r = reflect(-n, h_n);
+            float cos_alpha = std::max(dot(r, d_n), 0.0f);
+            float3 specular = hit.k_s * std::pow(cos_alpha, hit.m);
+            color = color +  vec_product(diffuse + specular,  light.color);
+        }
+    }
+    return color;
 }
 
 void render(image2D<float3> &framebuffer, int left, int top, int right,
