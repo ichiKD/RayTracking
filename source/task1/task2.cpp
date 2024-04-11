@@ -259,7 +259,22 @@ bool intersectsRayTriangle(const float3 &p, const float3 &d,
   // num_triangles. If an intersection is found that falls on a point on the ray
   // between t_min and t_max, return true. Otherwise, return false.
 
-  return false;
+
+    const Triangle * ans = nullptr;
+    float ans_t=std::numeric_limits<float>::infinity();
+    for (int i = 0; i < num_triangles; ++i) {
+        auto p1 = vertices[triangles[i][0]];
+        auto p2 = vertices[triangles[i][1]];
+        auto p3 = vertices[triangles[i][2]];
+        float t, lambda_1, lambda_2;
+        bool check = intersectRayTriangle(p, d, p1, p2, p3, t, lambda_1, lambda_2);
+        if(check){
+            if( t >= (t_min- epsilon) && t <= (t_max + epsilon) ){
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
