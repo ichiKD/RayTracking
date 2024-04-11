@@ -336,11 +336,47 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
   // BONUS: extend your implementation to recursive ray tracing.
   // max_bounces specifies the maximum number of secondary rays to trace.
 
-  for (int y = top; y < bottom; ++y)
-  {
-    for (int x = left; x < right; ++x)
+//   for (int y = top; y < bottom; ++y)
+//   {
+//     for (int x = left; x < right; ++x)
+//     {
+//       framebuffer(x, y) = background_color;
+//     }
+//   }
+
+
+    for (int y = top; y < bottom; ++y)
     {
-      framebuffer(x, y) = background_color;
+        for (int x = left; x < right; ++x)
+        {
+            // Compute the ray direction for the current pixel
+            float u = static_cast<float>(x) + 0.5f; // Center of pixel in x-direction
+            float v = static_cast<float>(y) + 0.5f; // Center of pixel in y-direction
+
+            // Compute ray direction in camera space (normalized)
+            float3 ray_direction = normalize(camera.lookat - camera.eye);
+            ray_direction += ((u - camera.w_s / 2.0f) / camera.w_s) * normalize(cross(camera.up, ray_direction));
+            ray_direction += ((v - camera.w_s / 2.0f) / camera.w_s) * normalize(camera.up);
+            ray_direction = normalize(ray_direction);
+            float3 ray_origin = camera.eye;
+            float t;
+            const Plane *closest_plane = findClosestHitPlanes(ray_origin, ray_direction, scene.planes.get(), scene.num_planes, t);
+            if (closest_plane != nullptr)
+            {
+                float3 intersection_point = ray_origin + t * ray_direction;
+                HitPoint hit_point;
+                hit_point.position = intersection_point;
+                hit_point.normal = normalized(float3{closest_plane->p.x, closest_plane->p.y, closest_plane->p.z});
+                hit_point.k_d = scene.materials[closest_plane->material].diffuse;
+                hit_point.k_s = scene.materials[closest_plane->material].specular;
+                hit_point.m = scene.materials[closest_plane->material].shininess;
+                float3 shaded_color = shade(intersection_point, ray_direction, hit_point, scene, lights, num_lights);
+                framebuffer(x, y) = shaded_color;
+            }
+            else
+            {
+                framebuffer(x, y) = background_color;
+            }
+        }
     }
-  }
 }

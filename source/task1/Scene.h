@@ -40,6 +40,7 @@ struct Material {
 };
 
 class Scene {
+public:
   std::unique_ptr<float3[]> positions;
   std::unique_ptr<float3[]> normals;
   std::unique_ptr<float2[]> texcoords;
@@ -83,7 +84,7 @@ class Scene {
 
   void deserialize(std::istream& file);
 
- public:
+ 
   Scene(std::unique_ptr<float3[]>&& positions,
         std::unique_ptr<float3[]>&& normals,
         std::unique_ptr<float2[]>&& texcoords, std::size_t num_vertices,
