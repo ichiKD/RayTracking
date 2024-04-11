@@ -18,9 +18,6 @@ class image2D
 {
 	std::unique_ptr<T[]> img;
 
-	std::size_t width = 0;
-	std::size_t height = 0;
-
 	static constexpr std::size_t size(std::size_t width, std::size_t height)
 	{
 		return width * height;
@@ -32,6 +29,10 @@ class image2D
 	}
 
 public:
+
+	std::size_t width = 0;
+	std::size_t height = 0;
+
 	image2D() = default;
 
 	image2D(std::size_t width, std::size_t height)

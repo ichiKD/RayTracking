@@ -46,9 +46,9 @@ public:
   std::unique_ptr<float2[]> texcoords;
   std::size_t num_vertices;
 
-  // std::unique_ptr<Triangle[]> triangles;
-  // std::unique_ptr<int[]> material_ids;
-  // std::size_t num_triangles;
+  std::unique_ptr<Triangle[]> triangles;
+  std::unique_ptr<int[]> material_ids;
+  std::size_t num_triangles;
 
   std::optional<BVHRoot> bvh;
 
@@ -84,7 +84,7 @@ public:
 
   void deserialize(std::istream& file);
 
- 
+
   Scene(std::unique_ptr<float3[]>&& positions,
         std::unique_ptr<float3[]>&& normals,
         std::unique_ptr<float2[]>&& texcoords, std::size_t num_vertices,
