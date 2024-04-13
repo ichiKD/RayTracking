@@ -41,6 +41,7 @@ struct Material {
 
 class Scene {
 
+ public:
 
   // std::unique_ptr<Triangle[]> triangles;
   // std::unique_ptr<int[]> material_ids;
@@ -72,7 +73,6 @@ class Scene {
 
   void deserialize(std::istream& file);
 
- public:
   std::unique_ptr<float3[]> positions;
   std::unique_ptr<float3[]> normals;
   std::unique_ptr<float2[]> texcoords;
