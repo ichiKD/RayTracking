@@ -331,6 +331,14 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
     float hs = ws * framebuffer.height / framebuffer.width;
     // Loop through the specified region of the framebuffer
     // std::cout<< top<< " "<< bottom<< " "<< left<< " "<<right<<"\n";
+    // std::cout<<"the number of elments in num_planes are" <<scene.num_vertices<<"\n";
+    for(int i=0; i<scene.num_vertices; i++){
+        int a = scene.positions.get()[i].x + scene.positions.get()[i].y + scene.positions.get()[i].z ;
+        a += scene.normals.get()[i].x + scene.normals.get()[i].y + scene.normals.get()[i].z ;
+        a += scene.texcoords.get()[i].x + scene.texcoords.get()[i].y ;
+        std::cout<<"the a is "<< a<< "for i="<<i<<"\n";
+    }
+    std::cout<<"reachedend\n";
     float3 color = background_color;
     for (int y = top; y < bottom; ++y)
     {
@@ -340,6 +348,7 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
             framebuffer(x, framebuffer.height-1 - y) = background_color;
         }
     }
+
     for (int y = top; y < bottom; ++y)
     {
         for (int x = left; x < right; ++x)
@@ -380,38 +389,38 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
 
 
 
-            std::optional<HitPoint> hit_triangle;
-            // Check for closest intersection with triangles
-            float t_triangle, lambda_1, lambda_2;
+            // std::optional<HitPoint> hit_triangle;
+            // // Check for closest intersection with triangles
+            // float t_triangle, lambda_1, lambda_2;
 
-            const Triangle* triangle_hit = findClosestHitTriangles(ray_origin, ray_direction,scene.triangles.get(),
-                                                 sizeof(scene.triangles)/ sizeof(Triangle), scene.positions.get(), 
-                                                t_triangle, lambda_1, lambda_2);
-            if (triangle_hit != nullptr && t_triangle > 0.0f)
-            {
-                float3 hit_position = ray_origin + t_triangle * ray_direction;
-                float3 v1 = scene.positions.get()[(*triangle_hit)[0]];
-                float3 v2 = scene.positions.get()[(*triangle_hit)[1]];
-                float3 v3 = scene.positions.get()[(*triangle_hit)[2]];
-                float3 hit_normal = normalized(cross(v2-v1, v3-v1)); //Triangle Normal
+            // const Triangle* triangle_hit = findClosestHitTriangles(ray_origin, ray_direction,scene.triangles.get(),
+            //                                      sizeof(scene.triangles)/ sizeof(Triangle), scene.positions.get(), 
+            //                                     t_triangle, lambda_1, lambda_2);
+            // if (triangle_hit != nullptr && t_triangle > 0.0f)
+            // {
+            //     float3 hit_position = ray_origin + t_triangle * ray_direction;
+            //     float3 v1 = scene.positions.get()[(*triangle_hit)[0]];
+            //     float3 v2 = scene.positions.get()[(*triangle_hit)[1]];
+            //     float3 v3 = scene.positions.get()[(*triangle_hit)[2]];
+            //     float3 hit_normal = normalized(cross(v2-v1, v3-v1)); //Triangle Normal
 
-                int idx =0;
-                for( ; idx<scene.num_triangles; idx++){
-                    if(*triangle_hit == scene.triangles.get()[idx]){
-                        break;
-                    }
-                }
-                Material hit_meterial = scene.materials.get()[idx];
-                float3 k_d = hit_meterial.diffuse;     //  diffuse color
-                float3 k_s = hit_meterial.specular;    //  specular color
-                float shine = hit_meterial.shininess;  //  shininess
+            //     int idx =0;
+            //     for( ; idx<scene.num_triangles; idx++){
+            //         if(*triangle_hit == scene.triangles.get()[idx]){
+            //             break;
+            //         }
+            //     }
+            //     Material hit_meterial = scene.materials.get()[idx];
+            //     float3 k_d = hit_meterial.diffuse;     //  diffuse color
+            //     float3 k_s = hit_meterial.specular;    //  specular color
+            //     float shine = hit_meterial.shininess;  //  shininess
 
 
-                hit_triangle = HitPoint{ hit_position, hit_normal, k_d, k_s, shine };
-            }
-            if (hit_triangle.has_value()){
-                color = shade(hit_triangle->position, ray_direction, *hit_triangle, scene, lights, num_lights);
-            }
+            //     hit_triangle = HitPoint{ hit_position, hit_normal, k_d, k_s, shine };
+            // }
+            // if (hit_triangle.has_value()){
+            //     color = shade(hit_triangle->position, ray_direction, *hit_triangle, scene, lights, num_lights);
+            // }
 
 
             std::optional<HitPoint> hit_cone = scene.findClosestHit(ray_origin, ray_direction);
