@@ -275,44 +275,30 @@ bool intersectsRayTriangle(const float3 &p, const float3 &d,
     }
     return false;
 }
-
 float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
              const Scene &scene, const Pointlight *lights,
              std::size_t num_lights)
 {
-  // TODO: implement phong shading.
-  // hit represents the surface point to be shaded.
-  // hit.position, hit.normal, and hit.k_d and hit.k_s contain the position,
-  // surface normal, and diffuse and specular reflection coefficients,
-  // hit.m the specular power.
-  // lights is a pointer to the first element of an array of num_lights
-  // point light sources to consider.
-  // Each light contains a member to give its position and color.
-  // Return the shaded color.
-
-  // To implement shadows, use scene.intersectsRay(p, d, t_min, t_max) to test
-  // whether a ray given by start point p and direction d intersects any
-  // object on the section between t_min and t_max.
     float3 shade = {0, 0, 0};
-    for(int i =0; i<num_lights; i++){
+    for (int i = 0; i < num_lights; i++) {
         Pointlight light = lights[i];
         float3 n = normalized(light.position - hit.position);
         float3 d_n = normalized(-d);
-        float3 h_n = normalized(hit.normal);
-        float t_max = std::sqrt(dot(light.position - hit.position, light.position - hit.position));
+        float3 h_n = normalized(hit.normal + d_n); 
+        float t_max = length(light.position - hit.position);
         if (scene.intersectsRay(hit.position, n, epsilon, t_max)) {
             continue;
         }
-        else{
+        else {
             float cos_angle = std::max(dot(h_n, n), 0.0f);
-            float3 diffuse = vec_product(hit.k_d* cos_angle, light.color);
-            float3 r = reflect(-n, h_n);
+            float3 diffuse = vec_product(hit.k_d * cos_angle, light.color);
+            float3 r = reflect(-n, hit.normal); 
             float cos_alpha = std::max(dot(r, d_n), 0.0f);
             float3 specular = vec_product(hit.k_s * std::pow(cos_alpha, hit.m), light.color);
             shade += diffuse + specular;
         }
     }
-    return shade*255.0f;
+    return shade * 255.0f;
 }
 
 void render(image2D<float3> &framebuffer, int left, int top, int right,
@@ -326,111 +312,55 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
     float3 v = normalized(cross(w, u));
 
     // Calculate image plane dimensions
-    float magnificationFactor = .081; 
+    float magnificationFactor = .017; 
+    float magnificationFactor2 =  8.5* ((float)framebuffer.height) / framebuffer.width; 
     float ws = camera.w_s * magnificationFactor;
-    float hs = ws * framebuffer.height / framebuffer.width;
+    float hs = ws * magnificationFactor2;
+
     // Loop through the specified region of the framebuffer
-    // std::cout<< top<< " "<< bottom<< " "<< left<< " "<<right<<"\n";
-    // std::cout<<"the number of elments in num_planes are" <<scene.num_vertices<<"\n";
-    for(int i=0; i<scene.num_vertices; i++){
-        int a = scene.positions.get()[i].x + scene.positions.get()[i].y + scene.positions.get()[i].z ;
-        a += scene.normals.get()[i].x + scene.normals.get()[i].y + scene.normals.get()[i].z ;
-        a += scene.texcoords.get()[i].x + scene.texcoords.get()[i].y ;
-        // std::cout<<"the a is "<< a<< "for i="<<i<<"\n";
-    }
-    // std::cout<<"reachedend\n";
-    float3 color = background_color;
-    for (int y = top; y < bottom; ++y)
-    {
-        for (int x = left; x < right; ++x)
-        {   
-            
-            framebuffer(x, framebuffer.height-1 - y) = background_color;
+    for (int y = top; y < bottom; ++y) {
+        for (int x = left; x < right; ++x) {
+            framebuffer(x, framebuffer.height - 1 - y) = background_color;
         }
     }
 
-    for (int y = top; y < bottom; ++y)
-    {
-        for (int x = left; x < right; ++x)
-        {   
-
+    for (float y = top; y < bottom; ++y) {
+        for (float x = left; x < right; ++x) {
             // Compute ray direction through the center of pixel (x, y) on the image plane
-            float u_offset = x * ws / framebuffer.width - ws / 2.0f;
-            float v_offset = y * hs / framebuffer.height - hs / 2.0f;
+            float u_offset = (x +1) * ws / framebuffer.width - ws / 2.0f;
+            float v_offset = (y +1) * hs / framebuffer.height - hs / 2.0f;
             float3 ray_direction = normalized(-camera.f * w + u_offset * u + v_offset * v);
 
             // Trace ray from camera eye 
             float3 ray_origin = camera.eye;
-            
 
-           // Find closest intersection point
             std::optional<HitPoint> hit_plane;
             float t_plane;
             const Plane* plane_hit = scene.findClosestHitPlane(ray_origin, ray_direction, t_plane);
-            // const Plane* plane_hit = findClosestHitPlanes(ray_origin, ray_direction,
-            //                              scene.planes.get(), scene.num_planes, t_plane);
 
-            if (plane_hit != nullptr && t_plane >= 0.0f){
+            if (plane_hit != nullptr && t_plane >= 0.0f) {
                 // Calculate hit point position and normal
                 float3 hit_position = ray_origin + t_plane * ray_direction;
                 float3 hit_normal = normalized({ plane_hit->p.x, plane_hit->p.y, plane_hit->p.z }); // Plane normal
 
-                Material hit_meterial = scene.materials.get()[plane_hit->material];
-                float3 k_d = hit_meterial.diffuse;     //  diffuse color
-                float3 k_s = hit_meterial.specular;    //  specular color
-                float shine = hit_meterial.shininess;  //  shininess
+                Material hit_material = scene.materials.get()[plane_hit->material];
+                float3 k_d = hit_material.diffuse;     //  diffuse color
+                float3 k_s = hit_material.specular;    //  specular color
+                float shine = hit_material.shininess;  //  shininess
 
                 hit_plane = HitPoint{ hit_position, hit_normal, k_d, k_s, shine };
             }
-            if (hit_plane.has_value()){
-                // std::cout<< "the plane color is "<< color.x<< " "<< color.y<< " "<< color.z<<"\n";
-                color = shade(hit_plane->position, ray_direction, *hit_plane, scene, lights, num_lights);
-                framebuffer(x, framebuffer.height-1 - y) = color;
+
+            if (hit_plane.has_value()) {
+                float3 color = shade(hit_plane->position, ray_direction, *hit_plane, scene, lights, num_lights);
+                framebuffer(x, framebuffer.height - 1 - y) = color;
             }
-
-
-
-
-            // std::optional<HitPoint> hit_triangle;
-            // // Check for closest intersection with triangles
-            // float t_triangle, lambda_1, lambda_2;
-
-            // const Triangle* triangle_hit = findClosestHitTriangles(ray_origin, ray_direction,scene.triangles.get(),
-            //                                      sizeof(scene.triangles)/ sizeof(Triangle), scene.positions.get(), 
-            //                                     t_triangle, lambda_1, lambda_2);
-            // if (triangle_hit != nullptr && t_triangle > 0.0f)
-            // {
-            //     float3 hit_position = ray_origin + t_triangle * ray_direction;
-            //     float3 v1 = scene.positions.get()[(*triangle_hit)[0]];
-            //     float3 v2 = scene.positions.get()[(*triangle_hit)[1]];
-            //     float3 v3 = scene.positions.get()[(*triangle_hit)[2]];
-            //     float3 hit_normal = normalized(cross(v2-v1, v3-v1)); //Triangle Normal
-
-            //     int idx =0;
-            //     for( ; idx<scene.num_triangles; idx++){
-            //         if(*triangle_hit == scene.triangles.get()[idx]){
-            //             break;
-            //         }
-            //     }
-            //     Material hit_meterial = scene.materials.get()[idx];
-            //     float3 k_d = hit_meterial.diffuse;     //  diffuse color
-            //     float3 k_s = hit_meterial.specular;    //  specular color
-            //     float shine = hit_meterial.shininess;  //  shininess
-
-
-            //     hit_triangle = HitPoint{ hit_position, hit_normal, k_d, k_s, shine };
-            // }
-            // if (hit_triangle.has_value()){
-            //     color = shade(hit_triangle->position, ray_direction, *hit_triangle, scene, lights, num_lights);
-            // }
-
 
             std::optional<HitPoint> hit_cone = scene.findClosestHit(ray_origin, ray_direction);
-            if (hit_cone.has_value()){
-                color = shade(hit_cone->position, ray_direction, *hit_cone, scene, lights, num_lights);
-                framebuffer(x, framebuffer.height-1 - y) = color;
+            if (hit_cone.has_value()) {
+                float3 color = shade(hit_cone->position, ray_direction, *hit_cone, scene, lights, num_lights);
+                framebuffer(x, framebuffer.height - 1 - y) = color;
             }
-            
         }
     }
 }
