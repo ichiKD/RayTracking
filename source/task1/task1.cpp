@@ -3,11 +3,9 @@
 #include <limits>
 #include <iostream>
 #include "Scene.h"
-
 #include "task1.h"
 
 constexpr float epsilon = 0.001f;
-
 
 
 
@@ -355,7 +353,6 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
                 float3 color = shade(hit_plane->position, ray_direction, *hit_plane, scene, lights, num_lights);
                 framebuffer(x, framebuffer.height - 1 - y) = color;
             }
-
             std::optional<HitPoint> hit_cone = scene.findClosestHit(ray_origin, ray_direction);
             if (hit_cone.has_value()) {
                 float3 color = shade(hit_cone->position, ray_direction, *hit_cone, scene, lights, num_lights);
