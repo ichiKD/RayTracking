@@ -24,11 +24,6 @@ math::vector<float, 3> normalized(math::vector<float, 3> a){
   float magnitude = a.x* a.x + a.y* a.y +  a.z* a.z;
   return {a.x/magnitude, a.y/magnitude, a.z/magnitude};
 }
-math::vector<float, 3> normalized(math::vector<float, 4> a){
-  float magnitude = a.x* a.x + a.y* a.y +  a.z* a.z;
-  return {a.x/magnitude, a.y/magnitude, a.z/magnitude};
-}
-
 
 float dot(math::vector<float, 3> a, math::vector<float, 3> b){
   return a.x* b.x + a.y* b.y +  a.z* b.z;
@@ -78,15 +73,13 @@ bool intersectRayPlane(const float3 &p, const float3 &d, const float4 &plane, fl
   // If there is no intersection (Hint: or one we do not care about), return false.
   // Otherwise, compute and set the parameter t such that p + t * d yields the intersection point and return true.
     // cout<<
-    auto d_n = normalized(d);
-    auto plane_n = normalized(plane);
-    float dot_ray_n = dot(d_n, plane_n);
+    float dot_ray_n = dot(d, {plane.x, plane.y, plane.z});
     if(isZero(dot_ray_n)){
         //The dot product is zero
         return false;
 
         //Check if the point p is in the plane
-        float T = dot(p, plane_n) - plane.w;
+        float T = dot(p, plane) - plane.w;
         if(isZero(T)){
             return true;
         }
@@ -95,8 +88,8 @@ bool intersectRayPlane(const float3 &p, const float3 &d, const float4 &plane, fl
         }
     }
     else{
-        t = plane.w - dot(p, plane_n);
-        t = t/dot(d_n, plane_n);
+        t = plane.w - dot(p, plane);
+        t = t/dot(d, plane);
         return true;
     }
 }
@@ -174,19 +167,18 @@ bool intersectRayTriangle(const float3 &p, const float3 &d, const float3 &p1,
   // Otherwise, compute and set the parameters lambda_1 and lambda_2
   // to the barycentric coordinates corresponding to the
   // closest point of intersection
- 
-    auto d_n = normalized(d);
-    float A = determinant(p1- p2, p1-p3, d_n);
+
+    float A = determinant(p1- p2, p1-p3, d);
     if(isZero(A)){
         // ray is parallel to triangle
         return false;
     }
-    lambda_1 = determinant(p1- p, p1-p3, d_n) / A;
-    lambda_2 = determinant(p1- p2, p1-p, d_n) / A;
+    lambda_1 = determinant(p1- p, p1-p3, d) / A;
+    lambda_2 = determinant(p1- p2, p1-p, d) / A;
     float3 n = cross(p2-p1, p3-p1);
     float w = dot(n, p1);
     t = w - dot(n, p);
-    t = t / dot(n, d_n);
+    t = t / dot(n, d);
     if(lambda_1 >= 0 && lambda_2 >= 0 && (lambda_1 + lambda_2) < 1){
         return true;
     }
@@ -266,8 +258,6 @@ bool intersectsRayTriangle(const float3 &p, const float3 &d,
   // between t_min and t_max, return true. Otherwise, return false.
 
 
-    const Triangle * ans = nullptr;
-    float ans_t=std::numeric_limits<float>::infinity();
     for (int i = 0; i < num_triangles; ++i) {
         auto p1 = vertices[triangles[i][0]];
         auto p2 = vertices[triangles[i][1]];

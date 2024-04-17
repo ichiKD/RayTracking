@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir -p build/build_docker && cd build/build_docker
-cmake ../cmake
+cmake  ../cmake
 make -j
 cd ../../
 
