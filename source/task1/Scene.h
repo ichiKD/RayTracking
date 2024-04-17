@@ -52,6 +52,38 @@ class Scene {
 
 
 
+  std::unique_ptr<float3[]> positions;
+  std::unique_ptr<float3[]> normals;
+  std::unique_ptr<float2[]> texcoords;
+  std::size_t num_vertices;
+  std::unique_ptr<Cone[]> cones;
+  std::size_t num_cones;
+  std::unique_ptr<Material[]> materials;
+  std::size_t num_materials;
+  std::unique_ptr<image2D<std::uint32_t>[]> textures;
+  std::size_t num_textures;
+  std::unique_ptr<Plane[]> planes;
+  std::size_t num_planes;
+
+  
+  Scene(std::unique_ptr<float3[]>&& positions,
+        std::unique_ptr<float3[]>&& normals,
+        std::unique_ptr<float2[]>&& texcoords, std::size_t num_vertices,
+        /*std::unique_ptr<Triangle[]>&& triangles, std::unique_ptr<int[]>&&
+           material_ids, std::size_t num_triangles,*/
+        BVHRoot&& bvh, std::unique_ptr<Plane[]> planes, std::size_t num_planes,
+        std::unique_ptr<Cone[]>&& cones, std::size_t num_cones,
+        std::unique_ptr<Material[]>&& materials, std::size_t num_materials,
+        std::unique_ptr<image2D<std::uint32_t>[]>&& textures,
+        std::size_t num_textures);
+  Scene(std::istream& file);
+
+  std::optional<HitPoint> findClosestHit(const float3& p,
+                                         const float3& d) const;
+  bool intersectsRay(const float3& p, const float3& d, float t_min,
+                     float t_max) const;
+
+
 
   const Plane* findClosestHitPlane(const float3& p, const float3& d,
                                    float& t) const;
@@ -72,36 +104,6 @@ class Scene {
                float lambda_2) const;
 
   void deserialize(std::istream& file);
-
-  std::unique_ptr<float3[]> positions;
-  std::unique_ptr<float3[]> normals;
-  std::unique_ptr<float2[]> texcoords;
-  std::size_t num_vertices;
-  std::unique_ptr<Cone[]> cones;
-  std::size_t num_cones;
-  std::unique_ptr<Material[]> materials;
-  std::size_t num_materials;
-  std::unique_ptr<image2D<std::uint32_t>[]> textures;
-  std::size_t num_textures;
-  std::unique_ptr<Plane[]> planes;
-  std::size_t num_planes;
-  Scene(std::unique_ptr<float3[]>&& positions,
-        std::unique_ptr<float3[]>&& normals,
-        std::unique_ptr<float2[]>&& texcoords, std::size_t num_vertices,
-        /*std::unique_ptr<Triangle[]>&& triangles, std::unique_ptr<int[]>&&
-           material_ids, std::size_t num_triangles,*/
-        BVHRoot&& bvh, std::unique_ptr<Plane[]> planes, std::size_t num_planes,
-        std::unique_ptr<Cone[]>&& cones, std::size_t num_cones,
-        std::unique_ptr<Material[]>&& materials, std::size_t num_materials,
-        std::unique_ptr<image2D<std::uint32_t>[]>&& textures,
-        std::size_t num_textures);
-  Scene(std::istream& file);
-
-  std::optional<HitPoint> findClosestHit(const float3& p,
-                                         const float3& d) const;
-  bool intersectsRay(const float3& p, const float3& d, float t_min,
-                     float t_max) const;
-
   float3 visualizeIntersections(const float3& p, const float3& d) const;
 
   std::ostream& serialize(std::ostream& file) const;

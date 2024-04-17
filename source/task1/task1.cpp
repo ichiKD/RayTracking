@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <iostream>
+#include <iomanip>
 #include "Scene.h"
 #include "task1.h"
 
@@ -266,7 +267,7 @@ bool intersectsRayTriangle(const float3 &p, const float3 &d,
         float t, lambda_1, lambda_2;
         bool check = intersectRayTriangle(p, d, p1, p2, p3, t, lambda_1, lambda_2);
         if(check){
-            if( t >= (t_min- epsilon) && t <= (t_max + epsilon) ){
+            if( t > (t_min- epsilon) && t < (t_max + epsilon) ){
                 return true;
             }
         }
@@ -331,11 +332,10 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
 
             // Trace ray from camera eye 
             float3 ray_origin = camera.eye;
-
+            float T_MIN=9000;
             std::optional<HitPoint> hit_plane;
             float t_plane;
             const Plane* plane_hit = scene.findClosestHitPlane(ray_origin, ray_direction, t_plane);
-
             if (plane_hit != nullptr && t_plane >= 0.0f) {
                 // Calculate hit point position and normal
                 float3 hit_position = ray_origin + t_plane * ray_direction;
@@ -348,16 +348,88 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
 
                 hit_plane = HitPoint{ hit_position, hit_normal, k_d, k_s, shine };
             }
-
             if (hit_plane.has_value()) {
-                float3 color = shade(hit_plane->position, ray_direction, *hit_plane, scene, lights, num_lights);
-                framebuffer(x, framebuffer.height - 1 - y) = color;
+                if(t_plane< 0.0f){
+                    t_plane = 9000 + 10000;
+                }
+                if(t_plane < T_MIN){
+                    T_MIN = t_plane;
+                    float3 color = shade(ray_origin, ray_direction, *hit_plane, scene, lights, num_lights);
+                    framebuffer(x, framebuffer.height - 1 - y) = color;
+                }
             }
+
+
+
+
+            std::optional<HitPoint> hit_triangle;
+            float t_triangle = 9000, lambda_1, lambda_2;
+            auto tri = scene.findClosestHitTriangle(ray_origin, ray_direction, t_triangle, lambda_1, lambda_2);
+            const Triangle* triangle_hit = std::get<0>(tri);
+            int triangle_meterial_id = std::get<1>(tri);
+            if (triangle_hit != nullptr && t_triangle > 0.0f)
+            {
+                float3 hit_position = ray_origin + t_triangle * ray_direction;
+                float3 v1 = scene.positions.get()[(*triangle_hit)[0]];
+                float3 v2 = scene.positions.get()[(*triangle_hit)[1]];
+                float3 v3 = scene.positions.get()[(*triangle_hit)[2]];
+                float3 hit_normal = normalized(cross(v2-v1, v3-v1)); //Triangle Normal
+
+                Material hit_meterial = scene.materials.get()[triangle_meterial_id];
+                float3 k_d = hit_meterial.diffuse;     //  diffuse color
+                float3 k_s = hit_meterial.specular;    //  specular color
+                float shine = hit_meterial.shininess;  //  shininess
+                hit_triangle = HitPoint{ hit_position, hit_normal, k_d, k_s, shine };
+            }
+            bool temp_tr1=false;
+            if (hit_triangle.has_value()){
+                if(t_triangle < T_MIN){
+                    temp_tr1 = true;
+                    T_MIN = t_triangle;
+                    float3 color = shade(ray_origin, ray_direction, *hit_triangle, scene, lights, num_lights);
+                    framebuffer(x, framebuffer.height - 1 - y) = color;
+                    // continue;
+                }
+            }
+
+
+
+
             std::optional<HitPoint> hit_cone = scene.findClosestHit(ray_origin, ray_direction);
+            float t_cone;
+            bool temp_cone=false;
             if (hit_cone.has_value()) {
-                float3 color = shade(hit_cone->position, ray_direction, *hit_cone, scene, lights, num_lights);
-                framebuffer(x, framebuffer.height - 1 - y) = color;
+                t_cone = (hit_cone->position.x - ray_origin.x) / ray_direction.x;
+                if(t_cone< epsilon){
+                    t_cone = 9000 + 10000;
+                }
+
+
+                if(t_cone <= T_MIN ){
+                    if(t_cone < (t_triangle - epsilon)){
+                        if(temp_tr1 == true){
+                            std::cout<< "the t_triangle is "<< std::setprecision(8)<< t_triangle<<  ", the t_cone is "<< std::setprecision(8)<< t_cone<<"\n";
+                        }
+                        // T_MIN = t_cone;
+                        float3 color = shade(ray_origin, ray_direction, *hit_cone, scene, lights, num_lights);
+                        framebuffer(x, framebuffer.height - 1 - y) = color;
+                    }
+                    else{
+                        float3 color = shade(ray_origin, ray_direction, *hit_cone, scene, lights, num_lights);
+                        framebuffer(x, framebuffer.height - 1 - y) = color;
+                    }
+                }
+                else{
+                    temp_cone = true;
+                    float3 color = shade(ray_origin, ray_direction, *hit_cone, scene, lights, num_lights);
+                    framebuffer(x, framebuffer.height - 1 - y) = color;
+                }
             }
+
+            // if (hit_cone.has_value()) {
+            //     float3 color = shade(ray_origin, ray_direction, *hit_cone, scene, lights, num_lights);
+            //     framebuffer(x, framebuffer.height - 1 - y) = color;
+            // }
         }
     }
 }
