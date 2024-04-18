@@ -25,6 +25,13 @@ math::vector<float, 3> normalized(math::vector<float, 3> a){
   return {a.x/magnitude, a.y/magnitude, a.z/magnitude};
 }
 
+
+
+math::vector<float, 3> normalized(math::vector<float, 4> a){
+  float magnitude = a.x* a.x + a.y* a.y +  a.z* a.z;
+  return {a.x/magnitude, a.y/magnitude, a.z/magnitude};
+}
+
 float dot(math::vector<float, 3> a, math::vector<float, 3> b){
   return a.x* b.x + a.y* b.y +  a.z* b.z;
 }
@@ -73,7 +80,11 @@ bool intersectRayPlane(const float3 &p, const float3 &d, const float4 &plane, fl
   // If there is no intersection (Hint: or one we do not care about), return false.
   // Otherwise, compute and set the parameter t such that p + t * d yields the intersection point and return true.
     // cout<<
-    float dot_ray_n = dot(d, {plane.x, plane.y, plane.z});
+
+    // std::cout<<"The normalized dot product is: "<< std::setprecision(8)<< dot(d_n, plane_n)
+    // <<" and dot product is: "<< std::setprecision(8)<< dot(d, plane)<<"\n";
+    
+    float dot_ray_n = dot(d, plane);
     if(isZero(dot_ray_n)){
         //The dot product is zero
         return false;
@@ -168,17 +179,20 @@ bool intersectRayTriangle(const float3 &p, const float3 &d, const float3 &p1,
   // to the barycentric coordinates corresponding to the
   // closest point of intersection
 
-    float A = determinant(p1- p2, p1-p3, d);
+    auto d_n = normalized(d);
+    float A = determinant(p1- p2, p1-p3, d_n);
     if(isZero(A)){
         // ray is parallel to triangle
         return false;
     }
-    lambda_1 = determinant(p1- p, p1-p3, d) / A;
-    lambda_2 = determinant(p1- p2, p1-p, d) / A;
-    float3 n = cross(p2-p1, p3-p1);
+    lambda_1 = determinant(p1- p, p1-p3, d_n) / A;
+    lambda_2 = determinant(p1- p2, p1-p, d_n) / A;
+    float3 n = normalized(cross(p2-p1, p3-p1));
+     n = cross(p2-p1, p3-p1);
+
     float w = dot(n, p1);
     t = w - dot(n, p);
-    t = t / dot(n, d);
+    t = t / dot(n, d_n);
     if(lambda_1 >= 0 && lambda_2 >= 0 && (lambda_1 + lambda_2) < 1){
         return true;
     }
@@ -282,8 +296,8 @@ float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
         float3 n = normalized(light.position - hit.position);
         float3 d_n = normalized(-d);
         float3 h_n = normalized(hit.normal + d_n); 
-        float t_max = length(light.position - hit.position);
-        if (scene.intersectsRay(hit.position, n, epsilon, t_max)) {
+        float t_max = (light.position - hit.position).x / n.x;
+        if (scene.intersectsRay(hit.position, n, -0.0f, t_max)) {
             continue;
         }
         else {
@@ -291,11 +305,18 @@ float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
             float3 diffuse = vec_product(hit.k_d * cos_angle, light.color);
             float3 r = reflect(-n, hit.normal); 
             float cos_alpha = std::max(dot(r, d_n), 0.0f);
-            float3 specular = vec_product(hit.k_s * std::pow(cos_alpha, hit.m), light.color);
-            shade += diffuse + specular;
+            // float3 specular = vec_product(hit.k_s * std::pow(cos_alpha, hit.m), light.color);
+            // shade += diffuse + specular;
+            shade+=diffuse;
         }
+        // std::cout<<"the "<< i +1<< "th light is: "<<
+        // std::setprecision(8)<< light.color.x<< " "<< 
+        // std::setprecision(8)<< light.color.y<< " "<<
+        // std::setprecision(8)<< light.color.z<< "\n";
+        
     }
-    return shade * 255.0f;
+    // std:: cout<< std::setprecision(8)<< shade.x<< " "<< std::setprecision(8)<< shade.y<< " "<< std::setprecision(8)<< shade.z<< "\n";
+    return shade * 20000.0f;
 }
 
 void render(image2D<float3> &framebuffer, int left, int top, int right,
@@ -381,7 +402,7 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
             }
             bool temp_tr1=false;
             if (hit_triangle.has_value()){
-                if(t_triangle < T_MIN){
+                if(true|| t_triangle < T_MIN){
                     temp_tr1 = true;
                     T_MIN = t_triangle;
                     float3 color = shade(ray_origin, ray_direction, *hit_triangle, scene, lights, num_lights);
@@ -396,7 +417,7 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
             std::optional<HitPoint> hit_cone = scene.findClosestHit(ray_origin, ray_direction);
             float t_cone;
             bool temp_cone=false;
-            if (hit_cone.has_value()) {
+            if (hit_cone.has_value() && false) {
                 t_cone = (hit_cone->position.x - ray_origin.x) / ray_direction.x;
                 if(t_cone< epsilon){
                     t_cone = 9000 + 10000;

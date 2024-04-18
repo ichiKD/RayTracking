@@ -1,10 +1,10 @@
 #!/bin/bash
-
+rm -r build/build_docker/task1/CMakeFiles/task1.dir/cg1/source/task1/task1.cpp.o
+rm -r build/build_docker/task1/CMakeFiles/task1.dir/cg1/source/task1/task1.cpp.o.d
 mkdir -p build/build_docker && cd build/build_docker
 cmake  ../cmake
 make -j
 cd ../../
-
 echo "Creating diffs..."
 mkdir -p output && mkdir -p output/diffs
 echo "------------------Testing all cases------------------"

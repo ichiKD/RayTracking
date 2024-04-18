@@ -9,7 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-
+#include <variant>
 #include <framework/utils/memory.h>
 #include <framework/utils/io.h>
 
@@ -224,7 +224,9 @@ void Task::defineLight(const float3& p, const float3& color)
 void Task::render(const std::filesystem::path& output_file, int res_x, int res_y, int max_bounces, int num_threads)
 {
 	auto start = std::chrono::steady_clock::now();
-	auto framebuffer = raytracer.render(res_x > 0 ? res_x : canvas_width, res_y > 0 ? res_y : canvas_height, std::get<Scene>(scene), camera, data(lights), size(lights), background_color, max_bounces, num_threads);
+	if(res_x <= 0) res_x = canvas_width;
+	if(res_y <= 0) res_y = canvas_height;
+	auto framebuffer = raytracer.render(res_x, res_y, std::get<Scene>(scene), camera, data(lights), size(lights), background_color, max_bounces, num_threads);
 	auto end = std::chrono::steady_clock::now();
 
 	std::cout << "rendered in " << std::fixed << std::setprecision(3) << timeElapsed(start, end) << " s using " << num_threads << " threads\n" << std::flush;

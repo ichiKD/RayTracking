@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(CG1)
-
+set(CMAKE_BUILD_TYPE Debug)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CMAKE_DEBUG_POSTFIX D)

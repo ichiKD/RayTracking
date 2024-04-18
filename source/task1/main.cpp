@@ -59,8 +59,8 @@ int taskMain(int argc, char* argv[]) {
   std::filesystem::create_directories(output_dir);
 
   Task task(output_dir, input_file, no_cache);
-
-  task.render((output_dir / input_file.filename()).replace_extension(".png"),
+  const std::filesystem::__cxx11::path fn = (output_dir / input_file.filename()).replace_extension(".png");
+  task.render(fn,
             res_x, res_y, max_bounces, num_threads);
 
   return 0;
