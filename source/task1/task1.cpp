@@ -23,6 +23,10 @@ bool isZero(float a){
 void printfloat3(math::vector<float, 3> a){
     std::cout<<"{"<<std::setprecision(8)<<a.x<<", "<<std::setprecision(8)<<a.y<<", "<<std::setprecision(8)<<a.z<<"}\n";
 }
+void printfloat4(math::vector<float, 4> a){
+    std::cout<<"{"<<std::setprecision(8)<<a.x<<", "<<std::setprecision(8)<<a.y<<", "<<std::setprecision(8)<<a.z<<", "<<std::setprecision(8)<<a.w<<"}\n";
+}
+
 
 
 math::vector<float, 3> normalized(math::vector<float, 3> a){
@@ -79,6 +83,7 @@ bool intersectRayPlane(const float3 &p, const float3 &d, const float4 &plane, fl
   // If there is no intersection (Hint: or one we do not care about), return false.
   // Otherwise, compute and set the parameter t such that p + t * d yields the intersection point and return true.
     // cout<<
+
     float dot_ray_n = dot(d, {plane.x, plane.y, plane.z});
     if(isZero(dot_ray_n)){
         //The dot product is zero
@@ -101,6 +106,7 @@ bool intersectRayPlane(const float3 &p, const float3 &d, const float4 &plane, fl
 }
 
 bool intersectsRayPlane(const float3 &p, const float3 &d, const Plane *planes, 
+
     std::size_t num_planes, float t_min, float t_max)
 {
   // TODO: implement intersection test between a ray and a set of planes.
@@ -112,7 +118,6 @@ bool intersectsRayPlane(const float3 &p, const float3 &d, const Plane *planes,
   // (p.x, p.y, p.z) and w is p.w.
   // If an intersection is found that falls on a point on the ray
   // between t_min and t_max, return true. Otherwise, return false.
-
 
     for (int i = 0; i < num_planes; ++i) {
         auto plane = planes[i].p;
@@ -138,11 +143,11 @@ const Plane *findClosestHitPlanes(const float3 &p, const float3 &d, const Plane 
   // If an intersection is found, set t to the ray parameter and
   // return a pointer to the hit plane.
   // If no intersection is found, return nullptr.
+    // std::cout<<"plane detected the num of lane is "<< num_planes<<"\n";
     const Plane * ans = nullptr;
     float ans_t;
     for (int i = 0; i < num_planes; ++i) {
         auto plane = planes[i].p;
-        float t;
         bool check = intersectRayPlane(p, d, plane, t);
         if(check){
             if(ans == nullptr){
@@ -173,12 +178,10 @@ bool intersectRayTriangle(const float3 &p, const float3 &d, const float3 &p1,
   // Otherwise, compute and set the parameters lambda_1 and lambda_2
   // to the barycentric coordinates corresponding to the
   // closest point of intersection
-
+    float3 d_n = normalized(d);
     float A = determinant(p1- p2, p1-p3, d);
-    if(isZero(A)){
-        // ray is parallel to triangle
-        return false;
-    }
+    // std::cout<<"triangle detected: A = "<<std::setprecision(8)<<A<< "\n";
+
     lambda_1 = determinant(p1- p, p1-p3, d) / A;
     lambda_2 = determinant(p1- p2, p1-p, d) / A;
     float3 n = cross(p2-p1, p3-p1);
@@ -186,9 +189,11 @@ bool intersectRayTriangle(const float3 &p, const float3 &d, const float3 &p1,
     t = w - dot(n, p);
     t = t / dot(n, d);
     if(lambda_1 >= 0 && lambda_2 >= 0 && (lambda_1 + lambda_2) < 1){
+        // std::cout<<"triangle detected true\n";
         return true;
     }
     else{
+        // std::cout<<"triangle detected false\n";
         return false;
     }
 }
@@ -211,7 +216,7 @@ const Triangle *findClosestHitTriangles(const float3 &p, const float3 &d,
 
 
     const Triangle * ans = nullptr;
-    float ans_t=std::numeric_limits<float>::infinity(), ans_lambda_1, ans_lambda_2;
+    float ans_t=90000000, ans_lambda_1, ans_lambda_2;
     for (int i = 0; i < num_triangles; ++i) {
         auto p1 = vertices[triangles[i][0]];
         auto p2 = vertices[triangles[i][1]];
@@ -288,7 +293,8 @@ float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
         float3 n = normalized(light.position - hit.position);
         float3 d_n = normalized(-d);
         float3 h_n = normalized(hit.normal + d_n); 
-        float t_max = length(light.position - hit.position);
+        float t_max = length(light.position - hit.position)  + 5000;
+        // std::cout<< "The t_max is "<< t_max<<"\n";
         if (scene.intersectsRay(hit.position, n, epsilon, t_max)) {
             continue;
         }
@@ -301,7 +307,7 @@ float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
             shade += diffuse + specular;
         }
     }
-    return shade * 255.0f;
+    return shade ;
 }
 
 void render(image2D<float3> &framebuffer, int left, int top, int right,
@@ -315,24 +321,21 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
     float3 v = normalized(cross(w, u));
 
     // Calculate image plane dimensions
-    float magnificationFactor = 1; 
-    float magnificationFactor2 =  ((float)framebuffer.height) / framebuffer.width; 
-    float ws = camera.w_s * magnificationFactor;
-    float hs = ws * magnificationFactor2;
+    float ws = camera.w_s ;
+    float hs = ws * framebuffer.height / framebuffer.width;
 
     // Loop through the specified region of the framebuffer
- /*   for (int y = top; y < bottom; ++y) {
+   for (int y = top; y < bottom; ++y) {
         for (int x = left; x < right; ++x) {
             framebuffer(x, framebuffer.height - 1 - y) = background_color;
         }
     }
-*/
     for (float y = top; y < bottom; ++y) {
         for (float x = left; x < right; ++x) {
             // Compute ray direction through the center of pixel (x, y) on the image plane
             float u_offset = (x +1) * ws / framebuffer.width - ws / 2.0f;
             float v_offset = (y +1) * hs / framebuffer.height - hs / 2.0f;
-            float3 ray_direction =100.0f* normalized(-camera.f * w + u_offset * u + v_offset * v);
+            float3 ray_direction =10.0f*normalized(-camera.f * w + u_offset * u + v_offset * v);
 
             // std::cout<< "the lookat is: ";
             // printfloat3(normalized(camera.eye - camera.lookat));
@@ -340,9 +343,9 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
             // printfloat3(normalized(-camera.f*w ));
             // Trace ray from camera eye 
             float3 ray_origin = camera.eye;
-            float T_MIN=900000;
+            float T_MIN=1000000000;
             std::optional<HitPoint> hit_plane;
-            float t_plane;
+            float t_plane = 90000000;
             // std::cout<< "the ray origin is at: ";
             // printfloat3(ray_origin);
             // std::cout<< "the ray direction is at: ";
@@ -353,70 +356,79 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
             // std::cout<< "the new ray direction is at: ";
             // printfloat3(normalized(L + u * (x*ws2/(2*framebuffer.width)) + v * ((framebuffer.height - y)*hs2/(2*framebuffer.height))));
 
-           /* const Plane* plane_hit = scene.findClosestHitPlane(ray_origin, ray_direction, t_plane);
-            if (plane_hit != nullptr && t_plane >= 0.0f) {
+           const Plane* plane_hit = scene.findClosestHitPlane(ray_origin, ray_direction, t_plane);
+            if (plane_hit != nullptr && t_plane > 0.0f) {
+                // std::cout<<"plane detected\n";
                 // Calculate hit point position and normal
                 float3 hit_position = ray_origin + t_plane * ray_direction;
                 float3 hit_normal = normalized({ plane_hit->p.x, plane_hit->p.y, plane_hit->p.z }); // Plane normal
-
                 Material hit_material = scene.materials.get()[plane_hit->material];
                 float3 k_d = hit_material.diffuse;     //  diffuse color
                 float3 k_s = hit_material.specular;    //  specular color
                 float shine = hit_material.shininess;  //  shininess
 
                 hit_plane = HitPoint{ hit_position, hit_normal, k_d, k_s, shine };
-                 if (hit_plane.has_value()) {
-                if(t_plane< 0.0f){
-                    t_plane = 9000 + 10000;
-                }
-                if(t_plane < T_MIN){
-                    T_MIN = t_plane;
-                    float3 color = shade(ray_origin, ray_direction, *hit_plane, scene, lights, num_lights);
-                    framebuffer(x, framebuffer.height - 1 - y) = color;
+                if (hit_plane.has_value()) {
+                    // std::cout<< "The t_plane is "<< t_plane<<"\n";
+                    if(t_plane< 0.0f){
+                        t_plane = 90000 + 10000;
+                    }
+                    if(t_plane < T_MIN){
+                        T_MIN = t_plane;
+                        float3 color = shade(ray_origin, ray_direction, *hit_plane, scene, lights, num_lights);
+                        framebuffer(x, framebuffer.height - 1 - y) = color;
+                    }
                 }
             }
-            }*/
            
 
-
-
-
             std::optional<HitPoint> hit_triangle;
-            float t_triangle = 9000, lambda_1, lambda_2;
-            
+            float t_triangle = 900000000, lambda_1, lambda_2;
             auto tri = scene.findClosestHitTriangle(ray_origin, ray_direction, t_triangle, lambda_1, lambda_2);
             const Triangle* triangle_hit = std::get<0>(tri);
             int triangle_meterial_id = std::get<1>(tri);
-            if (triangle_hit != nullptr && t_triangle > 0.0f)
-            {   
+            if (triangle_hit != nullptr ){   
+                // std::cout<<"triangle detected\n";
                 float3 hit_position = ray_origin + (t_triangle * ray_direction);
                 float3 hit_position_adj={hit_position.x,hit_position.y,hit_position.z+epsilon};
                 float3 v1 = scene.positions.get()[(*triangle_hit)[0]];
                 float3 v2 = scene.positions.get()[(*triangle_hit)[1]];
                 float3 v3 = scene.positions.get()[(*triangle_hit)[2]];
                 float3 hit_normal = normalized(cross(v2-v1, v3-v1)); //Triangle Normal
-
                 Material hit_meterial = scene.materials.get()[triangle_meterial_id];
                 float3 k_d = hit_meterial.diffuse;     //  diffuse color
                 float3 k_s = hit_meterial.specular;    //  specular color
                 float shine = hit_meterial.shininess;  //  shininess
-                hit_triangle = HitPoint{ hit_position, hit_normal
-                , k_d, k_s, shine };
-                
-                float3 color = shade(ray_origin, ray_direction, *hit_triangle, scene, lights, num_lights);
-                framebuffer(x, framebuffer.height - 1 - y) = color;
+                hit_triangle = HitPoint{ hit_position, hit_normal, k_d, k_s, shine };
+                if (hit_triangle.has_value()) {
+                    // std::cout<< "The t_triangle is "<< t_triangle<<"\n";
+                    if(t_triangle< 0.0f){
+                        t_triangle = 90000 + 10000;
+                    }
+                    if(t_triangle < T_MIN){
+                        T_MIN = t_triangle;
+                        float3 color = shade(ray_origin, ray_direction, *hit_triangle, scene, lights, num_lights);
+                        framebuffer(x, framebuffer.height - 1 - y) = color;
+                    }
+                }
             }
-         
+
 
 
             std::optional<HitPoint> hit_cone = scene.findClosestHit(ray_origin, ray_direction);
-          
-            if (1) {
-                
-                float3 color = shade(ray_origin, ray_direction
-                , *hit_cone, scene, lights, num_lights);
-                       
-                        framebuffer(x, framebuffer.height - 1 - y) = color;}
+            if (hit_cone.has_value()) {
+                // std::cout<<"cone detected\n";
+                float t_cone = (hit_cone->position.x - ray_origin.x) / ray_direction.x;
+                // std::cout<< "The t_cone is "<< t_cone<<"\n";
+                if(t_cone< 0.0f){
+                    t_cone = 90000 + 10000;
+                }
+                if(t_cone < T_MIN){
+                    T_MIN = t_cone;
+                    float3 color = shade(ray_origin, ray_direction, *hit_cone, scene, lights, num_lights);
+                    framebuffer(x, framebuffer.height - 1 - y) = color;
+                }
+            }
         }
     }
 }
