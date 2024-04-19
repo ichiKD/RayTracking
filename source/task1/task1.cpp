@@ -293,9 +293,9 @@ float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
         float3 n = normalized(light.position - hit.position);
         float3 d_n = normalized(-d);
         float3 h_n = normalized(hit.normal + d_n); 
-        float t_max = length(light.position - hit.position)  + 5000;
+        float t_max = length(light.position - hit.position) ;
         // std::cout<< "The t_max is "<< t_max<<"\n";
-        if (scene.intersectsRay(hit.position, n, epsilon, t_max)) {
+        if (scene.intersectsRay(hit.position, n, 0.1, t_max)) {
             continue;
         }
         else {
@@ -405,7 +405,7 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
                     if(t_triangle< 0.0f){
                         t_triangle = 90000 + 10000;
                     }
-                    if(t_triangle < T_MIN){
+                    if(true|| t_triangle < T_MIN){
                         T_MIN = t_triangle;
                         float3 color = shade(ray_origin, ray_direction, *hit_triangle, scene, lights, num_lights);
                         framebuffer(x, framebuffer.height - 1 - y) = color;
