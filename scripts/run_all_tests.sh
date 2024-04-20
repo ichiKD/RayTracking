@@ -1,6 +1,8 @@
 #!/bin/bash
 rm -r build/build_docker/task1/CMakeFiles/task1.dir/cg1/source/task1/task1.cpp.o
 rm -r build/build_docker/task1/CMakeFiles/task1.dir/cg1/source/task1/task1.cpp.o.d
+rm -rf output/diffs
+rm -rf output/task1
 mkdir -p build/build_docker && cd build/build_docker
 cmake  ../cmake
 make -j

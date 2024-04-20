@@ -99,8 +99,8 @@ bool intersectRayPlane(const float3 &p, const float3 &d, const float4 &plane, fl
         }
     }
     else{
-        t = plane.w - dot(p, plane);
-        t = t/dot(d, plane);
+
+        t = (plane.w - dot(p, plane)) / dot_ray_n;
         return true;
     }
 }
@@ -283,32 +283,41 @@ bool intersectsRayTriangle(const float3 &p, const float3 &d,
     }
     return false;
 }
+
 float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
              const Scene &scene, const Pointlight *lights,
              std::size_t num_lights)
+
 {
     float3 shade = {0, 0, 0};
+    
+    // Precompute values outside the light loop
+    float3 d_n = normalized(-d);
+    float3 hit_normal = hit.normal;
     for (int i = 0; i < num_lights; i++) {
         Pointlight light = lights[i];
         float3 n = normalized(light.position - hit.position);
-        float3 d_n = normalized(-d);
-        float3 h_n = normalized(hit.normal + d_n); 
-        float t_max = length(light.position - hit.position) ;
-        // std::cout<< "The t_max is "<< t_max<<"\n";
-        if (scene.intersectsRay(hit.position, n, 0.1, t_max)) {
+        float t_max = length(light.position - hit.position);
+        if (scene.intersectsRay(hit.position, n, 1, t_max)) {
             continue;
         }
-        else {
-            float cos_angle = std::max(dot(h_n, n), 0.0f);
-            float3 diffuse = vec_product(hit.k_d * cos_angle, light.color);
-            float3 r = reflect(-n, hit.normal); 
-            float cos_alpha = std::max(dot(r, d_n), 0.0f);
-            float3 specular = vec_product(hit.k_s * std::pow(cos_alpha, hit.m), light.color);
-            shade += diffuse + specular;
-        }
+        // Calculate halfway vector
+        float3 h_n = normalized(n + d_n);
+        // Lambertian (diffuse) reflection
+        float cos_angle = std::max(dot(h_n, hit.normal), 0.0f);
+        float3 diffuse = vec_product(hit.k_d, (cos_angle * light.color));
+        // Phong (specular) reflection
+        float3 reflection_direction = reflect(-n, hit.normal);
+        float cos_alpha = std::max(dot(reflection_direction, d_n), 0.0f);
+        float3 specular = vec_product(hit.k_s * std::pow(std::max(cos_alpha, 0.0f), hit.m), light.color);
+        
+        // Accumulate diffuse and specular components to shade
+        shade += diffuse + specular;
     }
-    return shade ;
+    
+    return shade;
 }
+
 
 void render(image2D<float3> &framebuffer, int left, int top, int right,
             int bottom, const Scene &scene, const Camera &camera,
@@ -405,7 +414,7 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
                     if(t_triangle< 0.0f){
                         t_triangle = 90000 + 10000;
                     }
-                    if(true|| t_triangle < T_MIN){
+                    if(false && t_triangle < T_MIN){
                         T_MIN = t_triangle;
                         float3 color = shade(ray_origin, ray_direction, *hit_triangle, scene, lights, num_lights);
                         framebuffer(x, framebuffer.height - 1 - y) = color;
@@ -423,7 +432,7 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
                 if(t_cone< 0.0f){
                     t_cone = 90000 + 10000;
                 }
-                if(t_cone < T_MIN){
+                if(true || t_cone < T_MIN){
                     T_MIN = t_cone;
                     float3 color = shade(ray_origin, ray_direction, *hit_cone, scene, lights, num_lights);
                     framebuffer(x, framebuffer.height - 1 - y) = color;
