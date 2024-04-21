@@ -67,7 +67,9 @@ math::vector<float, 3> vec_product(math::vector<float, 3> a , math::vector<float
   return { a.x* b.x, a.y* b.y, a.z* b.z};
 }
 float3 reflect(const float3& incident, const float3& normal) {
-    return incident - 2.0f * dot(incident, normal) * normal;
+    auto i = normalized(incident);
+    auto n = normalized(normal);
+    return normalized(i - 2.0f * dot(i, n) * n);
 }
 
 
@@ -298,7 +300,7 @@ float3 shade(const float3 &p, const float3 &d, const HitPoint &hit,
         Pointlight light = lights[i];
         float3 n = normalized(light.position - hit.position);
         float t_max = length(light.position - hit.position);
-        if (scene.intersectsRay(hit.position, n, 1, t_max)) {
+        if (scene.intersectsRay(hit.position, n, 0.13, t_max)) {
             continue;
         }
         // Calculate halfway vector
@@ -351,7 +353,7 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
             // std::cout<< "the -camera.f*w  is: ";
             // printfloat3(normalized(-camera.f*w ));
             // Trace ray from camera eye 
-            float3 ray_origin = camera.eye;
+            float3 ray_origin = camera.eye ;
             float T_MIN=1000000000;
             std::optional<HitPoint> hit_plane;
             float t_plane = 90000000;
@@ -384,7 +386,17 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
                     }
                     if(t_plane < T_MIN){
                         T_MIN = t_plane;
-                        float3 color = shade(ray_origin, ray_direction, *hit_plane, scene, lights, num_lights);
+                        int bounce_count =1;
+                        float3 new_ray_direction = ray_direction;
+                        float3 new_ray_origin = ray_origin;
+                        if(hit_plane->m > 500000 && bounce_count<num_lights){
+                            new_ray_origin = hit_plane->position;
+                            new_ray_direction = 10.0f*reflect(ray_direction, hit_plane->normal);
+                            hit_plane = scene.findClosestHit(new_ray_origin, new_ray_direction);
+                            bounce_count++;
+                            // std::cout<<bounce_count<<"wow\n";
+                        }
+                        float3 color = shade(new_ray_origin, new_ray_direction, *hit_plane, scene, lights, num_lights);
                         framebuffer(x, framebuffer.height - 1 - y) = color;
                     }
                 }
@@ -414,9 +426,19 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
                     if(t_triangle< 0.0f){
                         t_triangle = 90000 + 10000;
                     }
-                    if(false && t_triangle < T_MIN){
+                    if(t_triangle < T_MIN){
                         T_MIN = t_triangle;
-                        float3 color = shade(ray_origin, ray_direction, *hit_triangle, scene, lights, num_lights);
+                        int bounce_count =1;
+                        float3 new_ray_direction = ray_direction;
+                        float3 new_ray_origin = ray_origin;
+                        if(hit_triangle->m > 500000 && bounce_count<num_lights){
+                            new_ray_origin = hit_triangle->position;
+                            new_ray_direction = 10.0f*reflect(ray_direction, hit_triangle->normal);
+                            hit_triangle = scene.findClosestHit(new_ray_origin, new_ray_direction);
+                            bounce_count++;
+                            // std::cout<<bounce_count<<"wow\n";
+                        }
+                        float3 color = shade(new_ray_origin, new_ray_direction, *hit_triangle, scene, lights, num_lights);
                         framebuffer(x, framebuffer.height - 1 - y) = color;
                     }
                 }
@@ -425,6 +447,14 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
 
 
             std::optional<HitPoint> hit_cone = scene.findClosestHit(ray_origin, ray_direction);
+            for(int e=0; e<0; e++){
+                if (!hit_cone.has_value()){
+                    hit_cone = scene.findClosestHit(ray_origin, ray_direction);
+                }
+                else{
+                    break;
+                }
+            }
             if (hit_cone.has_value()) {
                 // std::cout<<"cone detected\n";
                 float t_cone = (hit_cone->position.x - ray_origin.x) / ray_direction.x;
@@ -432,9 +462,19 @@ void render(image2D<float3> &framebuffer, int left, int top, int right,
                 if(t_cone< 0.0f){
                     t_cone = 90000 + 10000;
                 }
-                if(true || t_cone < T_MIN){
+                if(t_cone < T_MIN){
                     T_MIN = t_cone;
-                    float3 color = shade(ray_origin, ray_direction, *hit_cone, scene, lights, num_lights);
+                    int bounce_count =1;
+                    float3 new_ray_direction = ray_direction;
+                    float3 new_ray_origin = ray_origin;
+                    // if(hit_cone->m > 500000 && bounce_count<num_lights){
+                    //     new_ray_origin = hit_cone->position;
+                    //     new_ray_direction = 10.0f*reflect(ray_direction, hit_cone->normal);
+                    //     hit_cone = scene.findClosestHit(new_ray_origin, new_ray_direction);
+                    //     bounce_count++;
+                    //     // std::cout<<bounce_count<<"wow\n";
+                    // }
+                    float3 color = shade(new_ray_origin, new_ray_direction, *hit_cone, scene, lights, num_lights);
                     framebuffer(x, framebuffer.height - 1 - y) = color;
                 }
             }
